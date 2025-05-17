@@ -19,6 +19,30 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f"Logged in as {bot.user}")
 
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    # Check if the bot was mentioned or replied to
+    mentioned = bot.user in message.mentions
+    replied = (
+        message.reference and 
+        isinstance(message.reference.resolved, discord.Message) and 
+        message.reference.resolved.author == bot.user
+    )
+
+    if mentioned or replied:
+        await message.channel.typing()
+        try:
+            cleaned = message.content.replace(f"<@{bot.user.id}>", "").strip()
+            response = model.generate_content(cleaned)
+            await message.reply(response.text)
+        except Exception as e:
+            await message.reply(f"Error: {e}")
+    else:
+        await bot.process_commands(message)
+
 @bot.command()
 async def ask(ctx, *, message):
     await ctx.trigger_typing()
